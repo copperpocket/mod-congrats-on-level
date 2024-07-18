@@ -1,68 +1,3 @@
-/*
-
-# Congrats On Level #
-
-#### A module for AzerothCore (https://github.com/azerothcore/mod-congrats-on-level)
-#### Originally by [StygianTheBest](https://github.com/StygianTheBest/AzerothCore-Content/tree/master/Modules)
-------------------------------------------------------------------------------------------------------------------
-
-
-### Description ###
-------------------------------------------------------------------------------------------------------------------
-This module rewards players when they reach specific levels. It has the option to reward gold, two items, and a
-buff or any combination. It also announces to the world when a player levels up. All rewards can be set in the
-config file for quick modifications.
-
-
-### Features ###
-------------------------------------------------------------------------------------------------------------------
-- Announces player level up to world
-- Awards the player for gaining new levels
-- The player forfeits the rewards if their bags are full
-
-
-### Data ###
-------------------------------------------------------------------------------------------------------------------
-- Type: Player/Server
-- Script: CongratsOnLevel
-- Config: Yes
-    - Enable Module
-    - Enable Module Announce
-    - Set Items/Gold/Buffs Given At Each Level
-- SQL: No
-
-
-### Version ###
-------------------------------------------------------------------------------------------------------------------
-- v2022.04.09 - Fixed deprecation warnings
-- v2017.08.06 - Release
-- v2017.09.30 - Fix Level Display Bug. Update Strings.
-
-
-### Credits ###
-------------------------------------------------------------------------------------------------------------------
-- [SoulSeekkor](https://github.com/SoulSeekkor)
-- [LordPsyan](https://bitbucket.org/lordpsyan/lordpsyan-patches)
-- [Blizzard Entertainment](http://blizzard.com)
-- [TrinityCore](https://github.com/TrinityCore/TrinityCore/blob/3.3.5/THANKS)
-- [SunwellCore](http://www.azerothcore.org/pages/sunwell.pl/)
-- [AzerothCore](https://github.com/AzerothCore/azerothcore-wotlk/graphs/contributors)
-- [AzerothCore Discord](https://discord.gg/gkt4y2x)
-- [EMUDevs](https://youtube.com/user/EmuDevs)
-- [AC-Web](http://ac-web.org/)
-- [ModCraft.io](http://modcraft.io/)
-- [OwnedCore](http://ownedcore.com/)
-- [OregonCore](https://wiki.oregon-core.net/)
-- [Wowhead.com](http://wowhead.com)
-- [AoWoW](https://wotlk.evowow.com/)
-
-
-### License ###
-------------------------------------------------------------------------------------------------------------------
-- This code and content is released under the [GNU AGPL v3](https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-AGPL3).
-
-*/
-
 #include "Configuration/Config.h"
 #include "ScriptMgr.h"
 #include "Player.h"
@@ -112,16 +47,32 @@ uint32 giveAward(Player* player)
     return money;
 }
 
+std::string GetClassColor(Player* player)
+{
+    switch (player->getClass())
+    {
+        case CLASS_WARRIOR:      return "|cffC69B6D";
+        case CLASS_PALADIN:      return "|cffF48CBA";
+        case CLASS_HUNTER:       return "|cffAAD372";
+        case CLASS_ROGUE:        return "|cffFFF468";
+        case CLASS_PRIEST:       return "|cffFFFFFF";
+        case CLASS_DEATH_KNIGHT: return "|cffC41E3A";
+        case CLASS_SHAMAN:       return "|cff0070DD";
+        case CLASS_MAGE:         return "|cff3FC7EB"; 
+        case CLASS_WARLOCK:      return "|cff8788EE"; 
+        case CLASS_DRUID:        return "|cffFF7C0A"; 
+        default:                 return "|cff636363"; 
+    }
+}
+
 class CongratsAnnounce : public PlayerScript
 {
-
 public:
-
     CongratsAnnounce() : PlayerScript("CongratsAnnounce") {}
 
-    void OnLogin(Player* player)
+    void OnLogin(Player* player) override
     {
-        // Announce Module
+        // Announce module
         if (col.congratsAnnounce)
         {
             ChatHandler(player->GetSession()).SendSysMessage(col.acoreMessageId);
@@ -134,175 +85,106 @@ class CongratsOnLevel : public PlayerScript
 public:
     CongratsOnLevel() : PlayerScript("CongratsOnLevel") { }
 
-    // Level Up Rewards
     void OnLevelChanged(Player* player, uint8 oldLevel) override
     {
-        // If enabled...
-        if (col.congratsEnable)
+        if (col.congratsEnable && col.CongratsPerLevelEnable)
         {
             uint8 level = player->getLevel();
             uint32 money = 0;
+            std::string classColor = GetClassColor(player);
 
             switch (level)
             {
-                case 10:
-                {
-                    if (oldLevel < 10)
+                // Level 2 reward
+                case 2:
+                    if (oldLevel < 2)
                     {
-                        money = giveAward(player);
-                    }
-                }
-                break;
+						// Pumpkin bag / 16 slot BoP
+                        player->AddItem(20400, 1);
 
-                case 20:
-                {
-                    if (oldLevel < 20)
-                    {
-                        money = giveAward(player);
-                    }
-                }
-                break;
+                        // Reward notification
+                        switch (player->GetSession()->GetSessionDbLocaleIndex())
+                        {
+                            case LOCALE_enUS:
+                            case LOCALE_koKR:
+                            case LOCALE_frFR:
+                            case LOCALE_deDE:
+                            case LOCALE_zhCN:
+                            case LOCALE_zhTW:
+                            case LOCALE_ruRU:
+                                // Send a whisper to the player
+                                ChatHandler(player->GetSession()).PSendSysMessage("|cFFFFA500Thank you for playing, %s! You've been awarded a bag. Good luck!|r", player->GetName().c_str());
+                                break;
 
-                case 30:
-                {
-                    if (oldLevel < 30)
-                    {
-                        money = giveAward(player);
-                    }
-                }
-                break;
+                            case LOCALE_esES:
+                            case LOCALE_esMX:
+                                ChatHandler(player->GetSession()).PSendSysMessage("|cFFFFA500¡Gracias por jugar, %s! Se le ha concedido una bag. ¡Buena suerte!|r", player->GetName().c_str());
+                                break;
 
-                case 40:
-                {
-                    if (oldLevel < 40)
-                    {
-                        money = giveAward(player);
+                            default:
+                                break;
+                        }
                     }
-                }
-                break;
-
-                case 50:
-                {
-                    if (oldLevel < 50)
-                    {
-                        money = giveAward(player);
-                    }
-                }
-                break;
-
-                case 60:
-                {
-                    if (oldLevel < 60)
-                    {
-                        money = giveAward(player);
-                    }
-                }
-                break;
-
-                case 70:
-                {
-                    if (oldLevel < 70)
-                    {
-                        money = giveAward(player);
-                    }
-                }
-                break;
-
-                case 80:
-                {
-                    if (oldLevel < 80)
-                    {
-                        money = giveAward(player);
-                    }
-                }
-                break;
+                    break;
 
                 default:
+					// Announcement and reward on every 10th level
+                    if (level % 10 == 0 && oldLevel < level)
+                    {
+                        money = giveAward(player); 
+
+                        // Server announcement
+                        std::ostringstream ss;
+                        switch (player->GetSession()->GetSessionDbLocaleIndex())
+                        {
+                            case LOCALE_enUS:
+                            case LOCALE_koKR:
+                            case LOCALE_frFR:
+                            case LOCALE_deDE:
+                            case LOCALE_zhCN:
+                            case LOCALE_zhTW:
+                            case LOCALE_ruRU:
+                                ss << "|cffFFFFFF[ DING! ] : " << classColor << player->GetName() << "|cffFFFFFF has reached " << classColor << "Level " << std::to_string(player->getLevel());
+                                break;
+
+                            case LOCALE_esES:
+                            case LOCALE_esMX:
+                                ss << "|cffFFFFFF[ FELICITACIONES! ] : |cff4CFF00 " << player->GetName() << " |cffFFFFFFha alcanzado |cff4CFF00el nivel " << std::to_string(player->getLevel()) << "|cffFFFFFF!";
+                                break;
+
+                            default:
+                                break;
+                        }
+                        sWorld->SendServerMessage(SERVER_MSG_STRING, ss.str().c_str());
+
+                        // Reward notification
+                        std::ostringstream ss2;
+                        switch (player->GetSession()->GetSessionDbLocaleIndex())
+                        {
+                            case LOCALE_enUS:
+                            case LOCALE_koKR:
+                            case LOCALE_frFR:
+                            case LOCALE_deDE:
+                            case LOCALE_zhCN:
+                            case LOCALE_zhTW:
+                            case LOCALE_ruRU:
+								// Send a whisper to the player
+                                ss2 << "|cFFFFA500Congrats on Level " << std::to_string(player->getLevel()) << ", " << player->GetName() << "! You've been awarded " << money / 10000  << " gold and a few treasures!|r";
+                                ChatHandler(player->GetSession()).PSendSysMessage(ss2.str().c_str());
+                                break;
+
+                            case LOCALE_esES:
+                            case LOCALE_esMX:
+								// Send a whisper to the player
+                                ss2 << "|cFFFFA500¡Felicitaciones por alcanzar el Nivel " << std::to_string(player->getLevel()) << ", " << player->GetName() << "! Se le ha concedido " << money / 10000 << " de oro y algunos tesoros!|r";
+                                ChatHandler(player->GetSession()).PSendSysMessage(ss2.str().c_str());
+                                break;
+								
+                            default:
+                                break;
+                        }
+                    }
                     break;
-            }
-
-            // If enabled...
-            if (col.CongratsPerLevelEnable)
-            {
-                // Issue a server notification for the player on level up.
-                std::ostringstream ss;
-                switch (player->GetSession()->GetSessionDbLocaleIndex())
-                {
-                    case LOCALE_enUS:
-                    case LOCALE_koKR:
-                    case LOCALE_frFR:
-                    case LOCALE_deDE:
-                    case LOCALE_zhCN:
-                    case LOCALE_zhTW:
-                    case LOCALE_ruRU:
-                    {
-                        ss << "|cffFFFFFF[ |cffFF0000C|cffFFA500O|cffFFFF00N|cff00FF00G|cff00FFFFR|cff6A5ACDA|cffFF00FFT|cff98FB98S|cffFF0000! |cffFFFFFF] : |cff4CFF00 " << player->GetName() << " |cffFFFFFFhas reached |cff4CFF00Level " << std::to_string(player->getLevel()) << "|cffFFFFFF!";
-                        break;
-                    }
-                    case LOCALE_esES:
-                    case LOCALE_esMX:
-                    {
-                        ss << "|cffFFFFFF[ |cffFF0000F|cffFFA500E|cffFFFF00L|cff00FF00I|cff00FFFFC|cff6A5ACDI|cffFF00FFT|cff98FB98A|cff00FF00C|cff00FFFFI|cffFF0000O|cff00FF00N|cff00FFFFE|cffFF00FFS|cffFF0000! |cffFFFFFF] : |cff4CFF00 " << player->GetName() << " |cffFFFFFFha alcanzado |cff4CFF00el nivel " << std::to_string(player->getLevel()) << "|cffFFFFFF!";
-                    }
-                    default:
-                        break;
-                }
-                sWorld->SendServerMessage(SERVER_MSG_STRING, ss.str().c_str());
-            }
-
-            // If level is defined, they hit a reward level.
-            if (!level && col.CongratsPerLevelEnable)
-            {
-                // Issue a server notification for the player on level up.
-                std::ostringstream ss;
-                switch (player->GetSession()->GetSessionDbLocaleIndex())
-                {
-                    case LOCALE_enUS:
-                    case LOCALE_koKR:
-                    case LOCALE_frFR:
-                    case LOCALE_deDE:
-                    case LOCALE_zhCN:
-                    case LOCALE_zhTW:
-                    case LOCALE_ruRU:
-                    {
-                        ss << "|cffFFFFFF[ |cffFF0000C|cffFFA500O|cffFFFF00N|cff00FF00G|cff00FFFFR|cff6A5ACDA|cffFF00FFT|cff98FB98S|cffFF0000! |cffFFFFFF] : |cff4CFF00 " << player->GetName() << " |cffFFFFFFhas reached |cff4CFF00Level " << level << "|cffFFFFFF!";
-                        break;
-                    }
-                    case LOCALE_esES:
-                    case LOCALE_esMX:
-                    {
-                        ss << "|cffFFFFFF[ |cffFF0000F|cffFFA500E|cffFFFF00L|cff00FF00I|cff00FFFFC|cff6A5ACDI|cffFF00FFT|cff98FB98A|cff00FF00C|cff00FFFFI|cffFF0000O|cff00FF00N|cff00FFFFE|cffFF00FFS|cffFF0000! |cffFFFFFF] : |cff4CFF00 " << player->GetName() << " |cffFFFFFFha alcanzado |cff4CFF00el nivel " << level << "|cffFFFFFF!";
-                    }
-                    default:
-                        break;
-                }
-                sWorld->SendServerMessage(SERVER_MSG_STRING, ss.str().c_str());
-
-                // Issue a raid warning to the player
-                std::ostringstream ss2;
-                switch (player->GetSession()->GetSessionDbLocaleIndex())
-                {
-                    case LOCALE_enUS:
-                    case LOCALE_koKR:
-                    case LOCALE_frFR:
-                    case LOCALE_deDE:
-                    case LOCALE_zhCN:
-                    case LOCALE_zhTW:
-                    case LOCALE_ruRU:
-                    {
-                        ss2 << "Congrats on Level " << level << " " << player->GetName() << "! You've been awarded " << money << " gold and a few treasures!";
-                        break;
-                    }
-                    case LOCALE_esES:
-                    case LOCALE_esMX:
-                    {
-                        ss2 << "¡Felicidades por el nivel " << level << " " << player->GetName() << " Se le ha concedido " << money << " oro y unos cuantos tesoros!";
-                    }
-                    default:
-                        break;
-                }
-                player->GetSession()->SendNotification(SERVER_MSG_STRING, ss2.str().c_str());
-                return;
             }
         }
     }
